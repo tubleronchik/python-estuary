@@ -37,14 +37,17 @@ def add_cid(cid: str) -> str:
             "root": f"{cid}",
         }
     )
-    params = json.dumps({"ignore-dupes": "true"})
+    params = {"ignore-dupes": "true"}
     response = requests.post(
         url="https://api.estuary.tech/content/add-ipfs",
         data=data,
         headers=json_header,
         params=params,
     )
-    print(response.text)
+    if response.status_code in [200, 202]:
+        return f"Deal for cid {json.loads(response.text)['pin']['cid']} was created successfully. Status is: {json.loads(response.text)['status']}. Request id is: {json.loads(response.text)['requestid']}"
+    else:
+        return f"Error during deal's creating: {(response.text)}"
 
 
 def _get_upload_endpoints() -> tp.List[str]:
@@ -68,7 +71,6 @@ def add_content(file_path: str) -> str:
         files=body,
         headers=form_header,
     )
-    print(response.text)
     if "error" in json.loads(response.text).keys():
         if json.loads(response.text)["error"] == "ERR_CONTENT_ADDING_DISABLED":
             endpoints = _get_upload_endpoints()
@@ -80,10 +82,8 @@ def add_content(file_path: str) -> str:
                 )
                 if response.status_code == 200:
                     break
-                print(response.text)
         else:
-            logger.warning(f"Error submitting data: {response.text}")
-    print(response.text)
+            return f"Error submitting data: {response.text}"
     if response.status_code == 200:
         return f"Data was uploaded successfully. CID is: {json.loads(response.text)['cid']}"
 
